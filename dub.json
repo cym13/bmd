@@ -1,0 +1,11 @@
+{
+	"name": "bmd",
+	"description": "D bookmark and tagging CLI tool",
+	"copyright": "Copyright © 2015, Cédric Picard",
+	"authors": ["Cédric Picard"],
+	"targetType": "executable",
+	"dependencies": {
+		"tinyredis": ">=2.0.4",
+		"painlessjson": ">=1.0.1"
+	}
+}
