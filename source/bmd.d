@@ -67,8 +67,7 @@ class Database
 
     /***** Redis interface *****/
 
-    void getData()
-    {
+    void getData() {
         string raw;
 
         if (!redis.send("EXISTS", redisID)) { // First use, let's bootstrap it
