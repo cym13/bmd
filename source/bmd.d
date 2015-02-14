@@ -148,14 +148,20 @@ int main(string[] args)
 
     debug writeln("* Original db: " ~ db.to!string);
 
-    if (tags.length != 0) {
-        if (url !in db)
-            db[url] = [];
-        db[url] = reduce!((a,b) => a.canFind(b) ? a : a ~ [b])
-                        (cast(string[])[], db[url] ~ tags);
+    if (url in db && optDel) {
+        db.urlDelete(url);
     }
-    else if (url in db)
-        writeln(db[url]);
+    else if (url in db && !tags.empty && optRem) {
+        foreach(tag ; tags)
+            db.tagRemove(url, tag);
+    }
+    else if (!tags.empty) {
+        foreach(tag ; tags)
+            db.tagAdd(url, tag);
+    }
+    else if (url in db) {
+        db.tagsPrint(url);
+    }
 
     debug writeln("* Final db: " ~ db.to!string);
 
