@@ -91,6 +91,34 @@ class Database
     void setData() {
         redis.send("SET", redisID, data.toJSON);
     }
+
+    /***** Data management *****/
+
+    void urlDelete(string url) {
+        if (url in data)
+            data.remove(url);
+    }
+
+    void tagAdd(string url, string tag) {
+        if (tag) {
+            if (url !in data)
+                data[url] = [];
+            data[url] ~= canFind(data[url], tag) ? cast(string[])[] : [tag];
+        }
+    }
+
+    void tagRemove(string url, string tag) {
+        data[url] = data[url].splitter(tag).join();
+
+        if (data[url].empty)
+            this.urlDelete(url);
+    }
+
+    void tagsPrint(string url) {
+        if (url in data)
+            foreach(tag ; data[url])
+                writeln(tag);
+    }
 }
 
 
