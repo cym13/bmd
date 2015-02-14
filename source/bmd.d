@@ -14,6 +14,7 @@ const string HELP    =
 
 Usage: bm [options] [-r] URL TAG...
        bm [options]  -d  URL
+       bm [options]  -l  [TAG]...
        bm [options]  URL
 
 Arguments:
@@ -30,7 +31,8 @@ Options:
     --version           Print current version number
 
     -r, --remove        Remove TAG from URL
-    -d, --delete        Delete an url from the database";
+    -d, --delete        Delete an url from the database
+    -l, --list-every    List the urls with every of TAG";
 
 
 alias db_t = string[][string];
@@ -70,7 +72,7 @@ class Database
     void getData() {
         string raw;
 
-        if (!redis.send("EXISTS", redisID)) { // First use, let's bootstrap it
+        if (!redis.send("EXISTS", redisID)) {
             redis.send("SET", redisID, "{}");
             raw = "{}";
         }
@@ -109,7 +111,7 @@ class Database
     void tagRemove(string url, string tag) {
         data[url] = data[url].splitter(tag).join();
 
-        if (data[url].empty)
+        if (data[url].length == 0)
             this.urlDelete(url);
     }
 
@@ -118,43 +120,67 @@ class Database
             foreach(tag ; data[url])
                 writeln(tag);
     }
+
+    string[] listEvery(string[] tags) {
+        string[] result = [];
+        foreach (tag ; tags) {
+            foreach(url, utag ; data)
+                if (utag.canFind(tag))
+                    result ~= url;
+        }
+        return result;
+    }
 }
 
 
 int main(string[] args)
 {
-    bool optRem = false;
-    bool optDel = false;
-    auto ID      = "BMD_DATA";
-
-    getopt(args,
-            "h|help",   { writeln(HELP); },
-            "version",  { writeln("Version: " ~ VERSION); },
-            "r|remove", &optRem,
-            "d|delete", &optDel
-          );
+    bool optRemove    = false;
+    bool optDelete    = false;
+    bool optListAny   = false;
+    bool optListEvery = false;
+    auto ID           = "BMD_DATA";
 
     if (args.length == 1) {
         writeln(HELP);
         return 1;
     }
 
-    auto url   = args[1];
-    auto tags  = args[2..$];
-    auto db    = new Database(ID);
+    getopt(args,
+            "h|help",       { writeln(HELP); },
+            "version",      { writeln("Version: " ~ VERSION); },
+            "r|remove",     &optRemove,
+            "l|list-every", &optListEvery,
+            "d|delete",     &optDelete
+          );
 
+    auto url   = args.length>1 ? args[1]    : null;
+    auto tags  = args.length>1 ? args[2..$] : null;
+
+    auto db = new Database(ID);
     db.getData();
 
     debug writeln("* Original db: " ~ db.to!string);
 
-    if (url in db && optDel) {
+    if (url in db && optDelete) {
         db.urlDelete(url);
     }
-    else if (url in db && !tags.empty && optRem) {
+    else if (optRemove && url in db && tags.length != 0) {
         foreach(tag ; tags)
             db.tagRemove(url, tag);
     }
-    else if (!tags.empty) {
+    else if (optListEvery) {
+        if (!url) {
+            foreach (u, t ; db.data)
+                writeln(u);
+        }
+        else {
+            tags = url ~ tags;
+            foreach (elem ; db.listEvery(tags))
+                writeln(elem);
+        }
+    }
+    else if (tags.length != 0) {
         foreach(tag ; tags)
             db.tagAdd(url, tag);
     }
