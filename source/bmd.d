@@ -32,7 +32,8 @@ Options:
 
     -r, --remove        Remove TAG from URL
     -d, --delete        Delete an url from the database
-    -l, --list-every    List the urls with every of TAG";
+    -l, --list-every    List the urls with every of TAG
+    -L, --list-any      List the urls with any of TAG";
 
 
 alias db_t = string[][string];
@@ -121,12 +122,26 @@ class Database
                 writeln(tag);
     }
 
-    string[] listEvery(string[] tags) {
+    string[] listAny(string[] tags) {
         string[] result = [];
         foreach (tag ; tags) {
             foreach(url, utag ; data)
                 if (utag.canFind(tag))
                     result ~= url;
+        }
+        return result;
+    }
+
+    string[] listEvery(string[] tags) {
+        string[] result = [];
+        foreach (url, utag ; data) {
+            bool canAdd = true;
+            foreach (tag ; tags)
+                if (!utag.canFind(tag))
+                    canAdd = false;
+
+            if (canAdd)
+                result ~= url;
         }
         return result;
     }
@@ -151,6 +166,7 @@ int main(string[] args)
             "version",      { writeln("Version: " ~ VERSION); },
             "r|remove",     &optRemove,
             "l|list-every", &optListEvery,
+            "L|list-any",   &optListAny,
             "d|delete",     &optDelete
           );
 
@@ -169,14 +185,22 @@ int main(string[] args)
         foreach(tag ; tags)
             db.tagRemove(url, tag);
     }
-    else if (optListEvery) {
+    else if (optListEvery || optListAny) {
         if (!url) {
             foreach (u, t ; db.data)
                 writeln(u);
         }
         else {
+            string[] delegate(string[] tag) listFunction;
+
+            if (optListEvery)
+                listFunction = &db.listEvery;
+
+            if (optListAny)
+                listFunction = &db.listAny;
+
             tags = url ~ tags;
-            foreach (elem ; db.listEvery(tags))
+            foreach (elem ; listFunction(tags))
                 writeln(elem);
         }
     }
