@@ -38,9 +38,9 @@ Options:
     -l, --list-every             List the urls with every of TAG
     -L, --list-any               List the urls with any of TAG
 
+    -n, --no-path-subs           Disable file path substitution
     -I, --redis-ID ID            Redis variable ID to be used
                                  Default is BMD_DATA
-
     -R, --redis-serveur IP:PORT  Which redis server to connect to
                                  Default to 127.0.0.1:6379
 ";
@@ -235,12 +235,14 @@ string[][string] parseArgs(string[] args)
     bool optDelete    = false;
     bool optListAny   = false;
     bool optListEvery = false;
+    bool optNoPathSub = false;
 
     getopt(args,
-            "r|remove",     &optRemove,
-            "l|list-every", &optListEvery,
-            "L|list-any",   &optListAny,
-            "d|delete",     &optDelete,
+            "r|remove",       &optRemove,
+            "l|list-every",   &optListEvery,
+            "L|list-any",     &optListAny,
+            "d|delete",       &optDelete,
+            "n|no-path-subs", &optNoPathSub,
           );
 
     if (optDelete) {
@@ -269,13 +271,13 @@ string[][string] parseArgs(string[] args)
         result["tags"] = [];
     }
 
-    result["urls"] = expandUrls(result["urls"]);
+    result["urls"] = expandUrls(result["urls"], !optNoPathSub);
 
     return result;
 }
 
 
-string[] expandUrls(string[] urls)
+string[] expandUrls(string[] urls, bool pathSubstitution)
 {
     import std.string, std.file, std.path;
 
@@ -288,10 +290,12 @@ string[] expandUrls(string[] urls)
         urls = urls.map!chomp.array;
     }
 
-    for(int i=0 ; i<urls.length ; i++) {
-        string url = absolutePath(urls[i]);
-        if (url.exists)
-            urls[i] = url;
+    if (pathSubstitution) {
+        for(int i=0 ; i<urls.length ; i++) {
+            string url = absolutePath(urls[i]);
+            if (url.exists)
+                urls[i] = url;
+        }
     }
 
     return urls;
