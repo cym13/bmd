@@ -30,16 +30,19 @@ Arguments:
     TAG     The tags to use with the url.
 
 Options:
-    -h, --help          Print this help and exit
-    --version           Print current version number
+    -h, --help                   Print this help and exit
+    --version                    Print current version number
 
-    -r, --remove        Remove TAG from URL
-    -d, --delete        Delete an url from the database
-    -l, --list-every    List the urls with every of TAG
-    -L, --list-any      List the urls with any of TAG
+    -r, --remove                 Remove TAG from URL
+    -d, --delete                 Delete an url from the database
+    -l, --list-every             List the urls with every of TAG
+    -L, --list-any               List the urls with any of TAG
 
-    -I, --redis-ID ID   Redis variable ID to be used
-                        Default is BMD_DATA
+    -I, --redis-ID ID            Redis variable ID to be used
+                                 Default is BMD_DATA
+
+    -R, --redis-serveur IP:PORT  Which redis server to connect to
+                                 Default to 127.0.0.1:6379
 ";
 
 
@@ -271,6 +274,7 @@ string[][string] parseArgs(string[] args)
     return result;
 }
 
+
 string[] expandUrls(string[] urls)
 {
     import std.string, std.file, std.path;
@@ -296,8 +300,9 @@ string[] expandUrls(string[] urls)
 
 int main(string[] args)
 {
-    bool optHelp      = false;
-    auto ID           = "BMD_DATA";
+    bool optHelp   = false;
+    auto ID        = "BMD_DATA";
+    auto optServer = "127.0.0.1:6379";
 
     if (args.length == 1) {
         writeln(HELP);
@@ -306,26 +311,20 @@ int main(string[] args)
 
     try {
         getopt(args,
-                "h|help",       {writeln(HELP); exit(0);},
-                "version",      {writeln("bmd version: " ~ VERSION); exit(0);},
-                "I|redis-ID",   &ID,
+                "h|help",         {writeln(HELP); exit(0);},
+                "version",        {writeln("bmd version: " ~ VERSION);exit(0);},
+                "I|redis-ID",     &ID,
+                "R|redis-server", &optServer,
               );
     }
     catch (std.getopt.GetOptException) {}
 
-    debug writeln("* Found ID=" ~ ID);
-    debug ID = "DBG_BMD_DATA";
-    debug writeln("* Set   ID=" ~ ID);
+    string host = optServer.findSplit(":")[0];
+    ushort port = optServer.findSplit(":")[2].to!ushort;
 
-    auto db = new Database(ID);
+    auto db = new Database(ID, host, port);
     db.getData();
-
-    debug writeln("* Original db: " ~ db.data.to!string);
-
     db.manageArgs(args);
-
-    debug writeln("* Final db: " ~ db.data.to!string);
-
     db.setData();
     return 0;
 }
