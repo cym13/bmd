@@ -265,7 +265,7 @@ string[][string] parseArgs(string[] args)
         result["urls"] = [args[1]];
         result["tags"] = args[2..$];
     }
-    else if (args.length == 1) {
+    else if (args.length == 2) {
         result["flag"] = ["get"];
         result["urls"] = [args[1]];
         result["tags"] = [];
