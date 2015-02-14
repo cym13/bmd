@@ -3,7 +3,9 @@
 import std.conv;
 import std.json;
 import std.stdio;
+import std.array;
 import std.getopt;
+import std.c.stdlib;
 import std.algorithm;
 import tinyredis.redis;
 import painlessjson;
@@ -15,6 +17,7 @@ immutable string HELP    =
 Usage: bm [options] [-r] URL TAG...
        bm [options]  -d  URL
        bm [options]  -l  [TAG]...
+       bm [options]  -L  [TAG]...
        bm [options]  URL
 
 Arguments:
@@ -167,15 +170,133 @@ class Database
         }
         return result;
     }
+
+
+    void manageArgs(string[] args)
+    {
+        auto pArgs = parseArgs(args);
+        auto flag  = pArgs["flag"][0];
+        auto urls  = pArgs["urls"];
+        auto tags  = pArgs["tags"];
+
+        if (flag == "delete") {
+            foreach (url ; urls)
+                try
+                    urlDelete(url);
+                catch (core.exception.RangeError)
+                    continue;
+        }
+
+        else if (flag == "remove") {
+            foreach (url ; urls)
+                foreach (tag ; tags)
+                    try
+                        tagRemove(url, tag);
+                    catch (core.exception.RangeError)
+                        continue;
+        }
+
+        else if (flag == "listAny" || flag == "listEvery") {
+            string[] delegate(const string[] tag) listFunction;
+
+            if (tags.empty)
+                listFunction = (x => cast(string[])data.keys);
+            else if (flag == "listEvery")
+                listFunction = &listEvery;
+            else if (flag == "listAny")
+                listFunction = &listAny;
+
+            foreach (url ; listFunction(tags))
+                writeln(url);
+        }
+
+        else if (flag == "assign") {
+            foreach (url ; urls)
+                foreach (tag ; tags)
+                    tagAdd(url, tag);
+        }
+
+        else if (flag == "get") {
+            foreach (url ; urls)
+                tagsPrint(url);
+        }
+    }
+}
+
+
+string[][string] parseArgs(string[] args)
+{
+    string[][string] result;
+
+    bool optRemove    = false;
+    bool optDelete    = false;
+    bool optListAny   = false;
+    bool optListEvery = false;
+
+    getopt(args,
+            "r|remove",     &optRemove,
+            "l|list-every", &optListEvery,
+            "L|list-any",   &optListAny,
+            "d|delete",     &optDelete,
+          );
+
+    if (optDelete) {
+        result["flag"] = ["delete"];
+        result["urls"] = [args[1]];
+        result["tags"] = [];
+    }
+    else if (optRemove) {
+        result["flag"] = ["remove"];
+        result["urls"] = [args[1]];
+        result["tags"] = args[2..$];
+    }
+    else if (optListAny || optListEvery) {
+        result["flag"] = optListEvery ? ["listEvery"] : ["listAny"];
+        result["urls"] = [];
+        result["tags"] = args.length > 1 ? args[1..$] : [];
+    }
+    else if (args.length > 2) {
+        result["flag"] = ["assign"];
+        result["urls"] = [args[1]];
+        result["tags"] = args[2..$];
+    }
+    else if (args.length == 1) {
+        result["flag"] = ["get"];
+        result["urls"] = [args[1]];
+        result["tags"] = [];
+    }
+
+    result["urls"] = expandUrls(result["urls"]);
+
+    return result;
+}
+
+string[] expandUrls(string[] urls)
+{
+    import std.string, std.file, std.path;
+
+    if (urls.canFind("-")) {
+        urls = urls.filter!(x => x != "-").array;
+
+        string line;
+        while ((line = readln()) !is null)
+            urls ~= [line];
+        urls = urls.map!chomp.array;
+    }
+
+    for(int i=0 ; i<urls.length ; i++) {
+        string url = absolutePath(urls[i]);
+        if (url.exists)
+            urls[i] = url;
+    }
+
+    return urls;
 }
 
 
 int main(string[] args)
 {
-    bool optRemove    = false;
-    bool optDelete    = false;
-    bool optListAny   = false;
-    bool optListEvery = false;
+    bool optHelp      = false;
     auto ID           = "BMD_DATA";
 
     if (args.length == 1) {
@@ -183,63 +304,27 @@ int main(string[] args)
         return 1;
     }
 
-    getopt(args,
-            "h|help",       { writeln(HELP); },
-            "version",      { writeln("bmd version: " ~ VERSION); },
-            "r|remove",     &optRemove,
-            "l|list-every", &optListEvery,
-            "L|list-any",   &optListAny,
-            "d|delete",     &optDelete,
-            "I|redis-ID",   &ID,
-          );
+    try {
+        getopt(args,
+                "h|help",       {writeln(HELP); exit(0);},
+                "version",      {writeln("bmd version: " ~ VERSION); exit(0);},
+                "I|redis-ID",   &ID,
+              );
+    }
+    catch (std.getopt.GetOptException) {}
 
     debug writeln("* Found ID=" ~ ID);
     debug ID = "DBG_BMD_DATA";
     debug writeln("* Set   ID=" ~ ID);
 
-    auto url   = args.length>1 ? args[1]    : null;
-    auto tags  = args.length>1 ? args[2..$] : null;
-
     auto db = new Database(ID);
     db.getData();
 
-    debug writeln("* Original db: " ~ db.to!string);
+    debug writeln("* Original db: " ~ db.data.to!string);
 
-    if (url in db && optDelete) {
-        db.urlDelete(url);
-    }
-    else if (optRemove && url in db && tags.length != 0) {
-        foreach(tag ; tags)
-            db.tagRemove(url, tag);
-    }
-    else if (optListEvery || optListAny) {
-        if (!url)
-            foreach (u, t ; db.data)
-                writeln(u);
+    db.manageArgs(args);
 
-        else {
-            string[] delegate(const string[] tag) listFunction;
-
-            if (optListEvery)
-                listFunction = &db.listEvery;
-
-            if (optListAny)
-                listFunction = &db.listAny;
-
-            tags = url ~ tags;
-            foreach (elem ; listFunction(tags))
-                writeln(elem);
-        }
-    }
-    else if (tags.length != 0) {
-        foreach(tag ; tags)
-            db.tagAdd(url, tag);
-    }
-    else if (url in db) {
-        db.tagsPrint(url);
-    }
-
-    debug writeln("* Final db: " ~ db.to!string);
+    debug writeln("* Final db: " ~ db.data.to!string);
 
     db.setData();
     return 0;
