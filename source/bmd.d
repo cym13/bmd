@@ -8,8 +8,8 @@ import std.algorithm;
 import tinyredis.redis;
 import painlessjson;
 
-const string VERSION = "0.0.1";
-const string HELP    =
+immutable string VERSION = "0.0.1";
+immutable string HELP    =
 "Simple command line browser independant bookmark utility.
 
 Usage: bm [options] [-r] URL TAG...
@@ -33,36 +33,44 @@ Options:
     -r, --remove        Remove TAG from URL
     -d, --delete        Delete an url from the database
     -l, --list-every    List the urls with every of TAG
-    -L, --list-any      List the urls with any of TAG";
+    -L, --list-any      List the urls with any of TAG
 
-
-alias db_t = string[][string];
+    -I, --redis-ID ID   Redis variable ID to be used
+                        Default is BMD_DATA
+";
 
 
 class Database
 {
-    Redis  redis;
-    string redisID;
-    db_t   data;
+    Redis            redis;
+    string           redisID;
+    string[][string] data;
 
-    this(string redisID, string rHost="127.0.0.1", ushort rPort=6379) {
+    this(const string redisID,
+         const string rHost="127.0.0.1",
+         const ushort rPort=6379)
+    {
         this.redisID = redisID;
         this.redis   = new Redis(rHost, rPort);
     }
 
     /***** Operator overloading to transfer access to this.data ******/
 
+    @safe
     string[] opIndex(string idx)
     {
         return data[idx];
     }
 
-    void opIndexAssign(string[] value, string idx)
+    @safe
+    void opIndexAssign(string[] value, const string idx)
     {
         data[idx] = value;
     }
 
-    string[]* opBinaryRight(string op)(string value)
+    @safe
+    pure
+    string[]* opBinaryRight(string op)(const string value)
     {
         if (op == "in")
             return value in data;
@@ -70,7 +78,8 @@ class Database
 
     /***** Redis interface *****/
 
-    void getData() {
+    void getData()
+    {
         string raw;
 
         if (!redis.send("EXISTS", redisID)) {
@@ -89,40 +98,50 @@ class Database
         }
     }
 
-
-    void setData() {
+    void setData()
+    {
         redis.send("SET", redisID, data.toJSON);
     }
 
     /***** Data management *****/
 
-    void urlDelete(string url) {
+    @safe
+    void urlDelete(const string url)
+    {
         if (url in data)
             data.remove(url);
     }
 
-    void tagAdd(string url, string tag) {
+    @safe
+    void tagAdd(const string url, const string tag)
+    {
         if (tag) {
             if (url !in data)
                 data[url] = [];
-            data[url] ~= canFind(data[url], tag) ? cast(string[])[] : [tag];
+            data[url] ~= canFind(data[url], tag) ? [] : [tag];
         }
     }
 
-    void tagRemove(string url, string tag) {
+    @safe
+    void tagRemove(const string url, const string tag)
+    {
         data[url] = data[url].splitter(tag).join();
 
         if (data[url].length == 0)
             this.urlDelete(url);
     }
 
-    void tagsPrint(string url) {
+    void tagsPrint(const string url)
+    {
         if (url in data)
             foreach(tag ; data[url])
                 writeln(tag);
     }
 
-    string[] listAny(string[] tags) {
+    @safe
+    pure
+    string[] listAny(const string[] tags)
+    {
         string[] result = [];
         foreach (tag ; tags) {
             foreach(url, utag ; data)
@@ -132,7 +151,10 @@ class Database
         return result;
     }
 
-    string[] listEvery(string[] tags) {
+    @safe
+    pure
+    string[] listEvery(const string[] tags)
+    {
         string[] result = [];
         foreach (url, utag ; data) {
             bool canAdd = true;
@@ -163,12 +185,17 @@ int main(string[] args)
 
     getopt(args,
             "h|help",       { writeln(HELP); },
-            "version",      { writeln("Version: " ~ VERSION); },
+            "version",      { writeln("bmd version: " ~ VERSION); },
             "r|remove",     &optRemove,
             "l|list-every", &optListEvery,
             "L|list-any",   &optListAny,
-            "d|delete",     &optDelete
+            "d|delete",     &optDelete,
+            "I|redis-ID",   &ID,
           );
+
+    debug writeln("* Found ID=" ~ ID);
+    debug ID = "DBG_BMD_DATA";
+    debug writeln("* Set   ID=" ~ ID);
 
     auto url   = args.length>1 ? args[1]    : null;
     auto tags  = args.length>1 ? args[2..$] : null;
@@ -186,12 +213,12 @@ int main(string[] args)
             db.tagRemove(url, tag);
     }
     else if (optListEvery || optListAny) {
-        if (!url) {
+        if (!url)
             foreach (u, t ; db.data)
                 writeln(u);
-        }
+
         else {
-            string[] delegate(string[] tag) listFunction;
+            string[] delegate(const string[] tag) listFunction;
 
             if (optListEvery)
                 listFunction = &db.listEvery;
