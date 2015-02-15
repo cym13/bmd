@@ -11,7 +11,7 @@ import std.algorithm;
 import tinyredis.redis;
 import painlessjson;
 
-immutable string VERSION = "1.4.0";
+immutable string VERSION = "1.5.0";
 immutable string HELP    =
 "Simple command line browser independant bookmark utility.
 
@@ -47,6 +47,8 @@ Options:
                                  Default is BMD_DATA
     -R, --redis-serveur IP:PORT  Which redis server to connect to
                                  Default to 127.0.0.1:6379
+    -v, --verbose                Displays the list of tags of
+                                 each url when listing
     -w, --web                    Open the results in a web browser
 ";
 
