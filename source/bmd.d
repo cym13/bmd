@@ -271,17 +271,19 @@ string[][string] parseArgs(string[] args)
     bool optListTags;
     bool optVerbose;
 
-    getopt(args,
-           std.getopt.config.caseSensitive,
-           "r|remove",       &optRemove,
-           "l|list-every",   &optListEvery,
-           "L|list-any",     &optListAny,
-           "d|delete",       &optDelete,
-           "n|no-path-subs", &optNoPathSub,
-           "t|tags",         &optListTags,
-           "V|verbose",      &optVerbose,
-           "w|web",          &optWebOpen,
-          );
+    try {
+        getopt(args,
+               std.getopt.config.caseSensitive,
+               "r|remove",       &optRemove,
+               "l|list-every",   &optListEvery,
+               "L|list-any",     &optListAny,
+               "d|delete",       &optDelete,
+               "n|no-path-subs", &optNoPathSub,
+               "t|tags",         &optListTags,
+               "V|verbose",      &optVerbose,
+               "w|web",          &optWebOpen,
+              );
+    } catch (std.getopt.GetOptException) {}
 
     if (optDelete) {
         result["flag"] = ["delete"];
