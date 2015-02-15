@@ -149,7 +149,7 @@ class Database
         string[] result = [];
         foreach (tag ; tags) {
             foreach(url, utag ; data)
-                if (utag.canFind(tag))
+                if (utag.canFind(tag) && !result.canFind(tag))
                     result ~= url;
         }
         return result;
@@ -266,13 +266,14 @@ string[][string] parseArgs(string[] args)
     bool optListTags  = false;
 
     getopt(args,
-            "r|remove",       &optRemove,
-            "l|list-every",   &optListEvery,
-            "L|list-any",     &optListAny,
-            "d|delete",       &optDelete,
-            "n|no-path-subs", &optNoPathSub,
-            "t|tags",         &optListTags,
-            "w|web",          &optWebOpen,
+           std.getopt.config.caseSensitive,
+           "r|remove",       &optRemove,
+           "l|list-every",   &optListEvery,
+           "L|list-any",     &optListAny,
+           "d|delete",       &optDelete,
+           "n|no-path-subs", &optNoPathSub,
+           "t|tags",         &optListTags,
+           "w|web",          &optWebOpen,
           );
 
     if (optDelete) {
@@ -400,10 +401,11 @@ int main(string[] args)
 
     try {
         getopt(args,
-                "h|help",         {writeln(HELP); exit(0);},
-                "version",        {writeln("bmd version: "~VERSION); exit(0);},
-                "I|redis-ID",     &ID,
-                "R|redis-server", &optServer,
+               std.getopt.config.caseSensitive,
+               "h|help",         {writeln(HELP); exit(0);},
+               "version",        {writeln("bmd version: "~VERSION); exit(0);},
+               "I|redis-ID",     &ID,
+               "R|redis-server", &optServer,
               );
     }
     catch (std.getopt.GetOptException) {}
@@ -415,5 +417,6 @@ int main(string[] args)
     db.getData();
     db.manageArgs(args);
     db.setData();
+
     return 0;
 }
