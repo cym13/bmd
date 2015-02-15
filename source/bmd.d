@@ -215,14 +215,14 @@ class Database
 
         else if (flag == "listTags") {
             writeln("Got Here");
-            int[string] tagList;
+            int[string] tagCount;
             foreach (urlTags ; data)
                 foreach (tag ; urlTags)
-                    tagList[tag] += 1;
+                    tagCount[tag] += 1;
 
-            result = tagList.keys
-                            .sort!((a,b) => tagList[a] < tagList[b])
-                            .map!(x => x ~ " " ~ tagList[x].to!string)
+            result = tagCount.keys
+                            .sort!((a,b) => tagCount[a] < tagCount[b])
+                            .map!(x => x ~ " " ~ tagCount[x].to!string)
                             .array;
         }
 
