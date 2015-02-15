@@ -5,6 +5,7 @@ import std.json;
 import std.stdio;
 import std.array;
 import std.getopt;
+import std.process;
 import std.c.stdlib;
 import std.algorithm;
 import tinyredis.redis;
@@ -14,11 +15,11 @@ immutable string VERSION = "1.0.0";
 immutable string HELP    =
 "Simple command line browser independant bookmark utility.
 
-Usage: bm [options] [-r] URL TAG...
-       bm [options]  -d  URL
-       bm [options]  -l  [TAG]...
-       bm [options]  -L  [TAG]...
-       bm [options]  URL
+Usage: bmd [options] [-r] URL TAG...
+       bmd [options]  -d  URL
+       bmd [options]  -l  [TAG]...
+       bmd [options]  -L  [TAG]...
+       bmd [options]  URL
 
 Arguments:
     URL     The url to bookmark
@@ -43,6 +44,7 @@ Options:
                                  Default is BMD_DATA
     -R, --redis-serveur IP:PORT  Which redis server to connect to
                                  Default to 127.0.0.1:6379
+    -w, --web                    Open the results in a web browser
 ";
 
 
@@ -137,13 +139,6 @@ class Database
             this.urlDelete(url);
     }
 
-    void tagsPrint(const string url)
-    {
-        if (url in data)
-            foreach(tag ; data[url])
-                writeln(tag);
-    }
-
     @safe
     pure
     string[] listAny(const string[] tags)
@@ -175,12 +170,14 @@ class Database
     }
 
 
-    void manageArgs(string[] args)
+    string[] manageArgs(string[] args)
     {
         auto pArgs = parseArgs(args);
         auto flag  = pArgs["flag"][0];
         auto urls  = pArgs["urls"];
         auto tags  = pArgs["tags"];
+
+        string[] result = [];
 
         if (flag == "delete") {
             foreach (url ; urls)
@@ -210,7 +207,7 @@ class Database
                 listFunction = &listAny;
 
             foreach (url ; listFunction(tags))
-                writeln(url);
+                result ~= url;
         }
 
         else if (flag == "assign") {
@@ -221,8 +218,21 @@ class Database
 
         else if (flag == "get") {
             foreach (url ; urls)
-                tagsPrint(url);
+                if (url in data)
+                    result ~= data[url];
         }
+
+
+        if (pArgs["flag"].canFind("web")) {
+            webOpen(environment.get("BROWSER", "firefox"),
+                    htmlGenerator(tags, result));
+        }
+        else {
+            foreach (element ; result)
+                writeln(element);
+        }
+
+        return result;
     }
 }
 
@@ -236,6 +246,7 @@ string[][string] parseArgs(string[] args)
     bool optListAny   = false;
     bool optListEvery = false;
     bool optNoPathSub = false;
+    bool optWebOpen   = false;
 
     getopt(args,
             "r|remove",       &optRemove,
@@ -243,6 +254,7 @@ string[][string] parseArgs(string[] args)
             "L|list-any",     &optListAny,
             "d|delete",       &optDelete,
             "n|no-path-subs", &optNoPathSub,
+            "w|web",          &optWebOpen,
           );
 
     if (optDelete) {
@@ -270,6 +282,9 @@ string[][string] parseArgs(string[] args)
         result["urls"] = [args[1]];
         result["tags"] = [];
     }
+
+    if (optWebOpen)
+        result["flag"] ~= "web";
 
     result["urls"] = expandUrls(result["urls"], !optNoPathSub);
 
@@ -302,6 +317,56 @@ string[] expandUrls(string[] urls, bool pathSubstitution)
 }
 
 
+@safe
+pure
+string htmlGenerator(string[] tags, string[] sites)
+{
+    string liElement = q{<li><a href="%s">%s</a><p>%-(%s, %)</p></li>};
+
+    // Note that here, end of line spaces are meaningfull
+    string htmlTemplate  = q{
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <title>bookmark</title>
+      </head>
+      <body>
+        <h1>
+          %-(%s, %)
+        </h1>
+        <ol>
+          %-(%s          
+          %)
+        </ol>
+      </body>
+    </html> };
+
+    string stag  = tags.join(", ");
+
+    string[] slist = [];
+    foreach (site ; sites) {
+        auto tmpUrl = site.split()[0];
+        auto tmpTag = site.split()[1..$];
+
+        slist ~= liElement.format(tmpUrl, tmpUrl, tmpTag);
+    }
+
+    return htmlTemplate.format(tags, slist);
+}
+
+
+void webOpen(string browser, string source)
+{
+    import std.file;
+
+    string htmlFile = "/tmp/bm-tmp.html";
+
+    htmlFile.write(source);
+    execute([browser, htmlFile]);
+}
+
+
 int main(string[] args)
 {
     bool optHelp   = false;
@@ -316,7 +381,7 @@ int main(string[] args)
     try {
         getopt(args,
                 "h|help",         {writeln(HELP); exit(0);},
-                "version",        {writeln("bmd version: " ~ VERSION);exit(0);},
+                "version",        {writeln("bmd version: "~VERSION); exit(0);},
                 "I|redis-ID",     &ID,
                 "R|redis-server", &optServer,
               );
