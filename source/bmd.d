@@ -312,7 +312,6 @@ string[] expandUrls(string[] urls, bool pathSubstitution)
                 urls[i] = url;
         }
     }
-
     return urls;
 }
 
@@ -321,14 +320,14 @@ string[] expandUrls(string[] urls, bool pathSubstitution)
 pure
 string htmlGenerator(string[] tags, string[] sites)
 {
-    string liElement = q{<li><a href="%s">%s</a><p>%-(%s, %)</p></li>};
+    string liElement = "<li><a href='%s'>%s</a><p>%-(%s, %)</p></li>";
 
     // Note that here, end of line spaces are meaningfull
-    string htmlTemplate  = q{
+    string htmlTemplate  = "
     <!DOCTYPE html>
     <html>
       <head>
-        <meta charset="UTF-8" />
+        <meta charset='UTF-8' />
         <title>bookmark</title>
       </head>
       <body>
@@ -336,11 +335,10 @@ string htmlGenerator(string[] tags, string[] sites)
           %-(%s, %)
         </h1>
         <ol>
-          %-(%s          
-          %)
+          %-(%s\n          %)
         </ol>
       </body>
-    </html> };
+    </html>";
 
     string stag  = tags.join(", ");
 
