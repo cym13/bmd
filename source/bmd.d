@@ -11,7 +11,7 @@ import std.algorithm;
 import tinyredis.redis;
 import painlessjson;
 
-immutable string VERSION = "1.0.0";
+immutable string VERSION = "1.4.0";
 immutable string HELP    =
 "Simple command line browser independant bookmark utility.
 
