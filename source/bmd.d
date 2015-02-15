@@ -257,13 +257,14 @@ string[][string] parseArgs(string[] args)
 {
     string[][string] result;
 
-    bool optRemove    = false;
-    bool optDelete    = false;
-    bool optListAny   = false;
-    bool optListEvery = false;
-    bool optNoPathSub = false;
-    bool optWebOpen   = false;
-    bool optListTags  = false;
+    bool optRemove;
+    bool optDelete;
+    bool optListAny;
+    bool optListEvery;
+    bool optNoPathSub;
+    bool optWebOpen;
+    bool optListTags;
+    bool optverbose;
 
     getopt(args,
            std.getopt.config.caseSensitive,
@@ -309,6 +310,8 @@ string[][string] parseArgs(string[] args)
 
     if (optWebOpen)
         result["flag"] ~= "web";
+    if (optVerbose)
+        result["flag"] ~= "verbose";
 
     result["urls"] = expandUrls(result["urls"], !optNoPathSub);
 
@@ -390,9 +393,9 @@ void webOpen(string browser, string source)
 
 int main(string[] args)
 {
-    bool optHelp   = false;
     auto ID        = "BMD_DATA";
     auto optServer = "127.0.0.1:6379";
+    bool optHelp;
 
     if (args.length == 1) {
         writeln(HELP);
