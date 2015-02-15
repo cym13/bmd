@@ -322,8 +322,7 @@ string htmlGenerator(string[] tags, string[] sites)
 {
     string liElement = "<li><a href='%s'>%s</a><p>%-(%s, %)</p></li>";
 
-    // Note that here, end of line spaces are meaningfull
-    string htmlTemplate  = "
+    string htmlTemplate = "
     <!DOCTYPE html>
     <html>
       <head>
@@ -335,12 +334,12 @@ string htmlGenerator(string[] tags, string[] sites)
           %-(%s, %)
         </h1>
         <ol>
-          %-(%s\n          %)
+          %-(%s\n           %)
         </ol>
       </body>
     </html>";
 
-    string stag  = tags.join(", ");
+    string stag = tags.join(", ");
 
     string[] slist = [];
     foreach (site ; sites) {
