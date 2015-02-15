@@ -16,10 +16,11 @@ immutable string HELP    =
 "Simple command line browser independant bookmark utility.
 
 Usage: bmd [options] [-r] URL TAG...
+       bmd [options]  URL
        bmd [options]  -d  URL
        bmd [options]  -l  [TAG]...
        bmd [options]  -L  [TAG]...
-       bmd [options]  URL
+       bmd [options]  -t
 
 Arguments:
     URL     The url to bookmark
@@ -38,6 +39,8 @@ Options:
     -d, --delete                 Delete an url from the database
     -l, --list-every             List the urls with every of TAG
     -L, --list-any               List the urls with any of TAG
+    -t, --tags                   List every tag present in the database
+                                 with how many times it is used.
 
     -n, --no-path-subs           Disable file path substitution
     -I, --redis-ID ID            Redis variable ID to be used
@@ -210,6 +213,19 @@ class Database
                 result ~= url;
         }
 
+        else if (flag == "listTags") {
+            writeln("Got Here");
+            int[string] tagList;
+            foreach (urlTags ; data)
+                foreach (tag ; urlTags)
+                    tagList[tag] += 1;
+
+            result = tagList.keys
+                            .sort!((a,b) => tagList[a] < tagList[b])
+                            .map!(x => x ~ " " ~ tagList[x].to!string)
+                            .array;
+        }
+
         else if (flag == "assign") {
             foreach (url ; urls)
                 foreach (tag ; tags)
@@ -247,6 +263,7 @@ string[][string] parseArgs(string[] args)
     bool optListEvery = false;
     bool optNoPathSub = false;
     bool optWebOpen   = false;
+    bool optListTags  = false;
 
     getopt(args,
             "r|remove",       &optRemove,
@@ -254,6 +271,7 @@ string[][string] parseArgs(string[] args)
             "L|list-any",     &optListAny,
             "d|delete",       &optDelete,
             "n|no-path-subs", &optNoPathSub,
+            "t|tags",         &optListTags,
             "w|web",          &optWebOpen,
           );
 
@@ -271,6 +289,11 @@ string[][string] parseArgs(string[] args)
         result["flag"] = optListEvery ? ["listEvery"] : ["listAny"];
         result["urls"] = [];
         result["tags"] = args.length > 1 ? args[1..$] : [];
+    }
+    else if (optListTags) {
+        result["flag"] = ["listTags"];
+        result["urls"] = [];
+        result["tags"] = [];
     }
     else if (args.length > 2) {
         result["flag"] = ["assign"];
