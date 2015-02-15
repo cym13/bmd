@@ -210,7 +210,10 @@ class Database
                 listFunction = &listAny;
 
             foreach (url ; listFunction(tags))
-                result ~= url;
+                if (pArgs["flag"].canFind("verbose"))
+                    result ~= url ~ " " ~ data[url].join(" ");
+                else
+                    result ~= url;
         }
 
         else if (flag == "listTags") {
@@ -264,7 +267,7 @@ string[][string] parseArgs(string[] args)
     bool optNoPathSub;
     bool optWebOpen;
     bool optListTags;
-    bool optverbose;
+    bool optVerbose;
 
     getopt(args,
            std.getopt.config.caseSensitive,
@@ -274,6 +277,7 @@ string[][string] parseArgs(string[] args)
            "d|delete",       &optDelete,
            "n|no-path-subs", &optNoPathSub,
            "t|tags",         &optListTags,
+           "V|verbose",      &optVerbose,
            "w|web",          &optWebOpen,
           );
 
