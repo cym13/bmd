@@ -1,0 +1,134 @@
+Description
+===========
+
+Simple command line bookmark and/or tagging utility.
+
+In order to help using it to tag files and directories as well as urls, it
+recognises if the URL given is that of an existing file. If so, the absolute
+path is substituted to help scripting by piping the output and to escape
+ambiguity. This behaviour can be stopped by using the "--no-path-subs" option.
+
+One way to see this program is to consider it a simple hashmap utility for
+bash that associates a set of strings (the tags) to another one (the url).
+Feel free to find other ways to use this program!
+
+
+This is a clone from 'bookmark' (http://github.com/cym13/bookmark) that uses
+redis instead of relying on files to speed up the process (by about 4 times).
+
+The original one could have be rewritten to use redis, but I did not wanted
+to annoy the users and I wanted to improve at D.
+
+
+THIS VERSION IS NOT STABLE YET (but usable).
+
+
+Documentation
+=============
+
+Simple command line browser independant bookmark utility.
+
+Usage: bmd [options] [-r] URL TAG...
+       bmd [options]  URL
+       bmd [options]  -d  URL
+       bmd [options]  -l  [TAG]...
+       bmd [options]  -L  [TAG]...
+       bmd [options]  -t
+
+Arguments:
+    URL     The url to bookmark
+            If alone, print the tags associated with URL
+            If the url corresponds to an existing file,
+            the absolute path is substituted to URL
+            If URL is '-', then the program looks for a list of URL
+            comming from the standard input.
+    TAG     The tags to use with the url.
+
+Options:
+    -h, --help                   Print this help and exit
+    --version                    Print current version number
+
+    -r, --remove                 Remove TAG from URL
+    -d, --delete                 Delete an url from the database
+    -l, --list-every             List the urls with every of TAG
+    -L, --list-any               List the urls with any of TAG
+    -t, --tags                   List every tag present in the database
+                                 with how many times it is used.
+
+    -n, --no-path-subs           Disable file path substitution
+    -I, --redis-ID ID            Redis variable ID to be used
+                                 Default is BMD_DATA
+    -R, --redis-serveur IP:PORT  Which redis server to connect to
+                                 Default to 127.0.0.1:6379
+    -w, --web                    Open the results in a web browser
+
+
+Example
+=======
+
+    $ bmd "http://duckduckgo.com" bad search engine
+
+    $ bmd "http://google.com" bad search engine
+
+    $ bmd -l search engine
+    http://duckduckgo.com
+    http://google.com
+
+    $ bmd -r "http://duckduckgo.com" bad
+
+    $ bmd "http://duckduckgo.com" cool
+
+    $ bmd "http://duckduckgo.com"
+    cool
+    engine
+    search
+
+    $ bmd -L search engine
+    http://duckduckgo.com
+    http://google.com
+
+    $ bmd -L bad search engine
+    http://google.com
+
+    $ bmd -l
+    cool
+    engine
+    search
+    bad
+
+    $ cat urls | bmd - atag
+
+
+Installation
+============
+
+As this program uses the DUB packaging system, you can build it with:
+
+    dub build -b release
+
+The binary produces (namely 'bmd') is standalone, you can link to it from any
+folder in your PATH.
+
+Dependencies
+============
+
+All dependancies are manageable by DUB
+
+tinyredis    http://adilbaig.github.io/Tiny-Redis/
+painlessjson https://github.com/BlackEdder/painlessjson
+
+License
+=======
+
+This program is under the GPLv3 License.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+Contact
+=======
+
+Main developper: Cédric Picard
+Email:           cedric.picard@efrei.net
+Twitter:         @Cym13
+GPG:             383A 76B9 D68D 2BD6 9D2B  4716 E3B9 F4FE 5CED 42CB
