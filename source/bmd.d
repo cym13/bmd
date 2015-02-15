@@ -11,7 +11,7 @@ import std.algorithm;
 import tinyredis.redis;
 import painlessjson;
 
-immutable string VERSION = "1.5.0";
+immutable string VERSION = "1.6.0";
 immutable string HELP    =
 "Simple command line browser independant bookmark utility.
 
@@ -280,7 +280,7 @@ string[][string] parseArgs(string[] args)
                "d|delete",       &optDelete,
                "n|no-path-subs", &optNoPathSub,
                "t|tags",         &optListTags,
-               "V|verbose",      &optVerbose,
+               "v|verbose",      &optVerbose,
                "w|web",          &optWebOpen,
               );
     } catch (std.getopt.GetOptException) {}
