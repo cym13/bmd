@@ -28,12 +28,10 @@ Documentation
 
 Simple command line browser independant bookmark utility.
 
-Usage: bmd [options] [-r] URL TAG...
-       bmd [options]  URL
-       bmd [options]  -d  URL
-       bmd [options]  -l  [TAG]...
-       bmd [options]  -L  [TAG]...
-       bmd [options]  -t
+Usage: bmd [options] [-r]    URL TAG...
+       bmd [options] [-d]    URL
+       bmd [options] (-l|-L) [TAG]...
+       bmd [options] (-j|-t)
 
 Arguments:
     URL     The url to bookmark
@@ -52,6 +50,7 @@ Options:
     -d, --delete                 Delete an url from the database
     -l, --list-every             List the urls with every of TAG
     -L, --list-any               List the urls with any of TAG
+    -j, --json                   Writes database in JSON format to stdout
     -t, --tags                   List every tag present in the database
                                  with how many times it is used.
 

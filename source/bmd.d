@@ -11,16 +11,14 @@ import std.algorithm;
 import tinyredis.redis;
 import painlessjson;
 
-immutable string VERSION = "1.6.0";
+immutable string VERSION = "1.7.0";
 immutable string HELP    =
 "Simple command line browser independant bookmark utility.
 
-Usage: bmd [options] [-r] URL TAG...
-       bmd [options]  URL
-       bmd [options]  -d  URL
-       bmd [options]  -l  [TAG]...
-       bmd [options]  -L  [TAG]...
-       bmd [options]  -t
+Usage: bmd [options] [-r]    URL TAG...
+       bmd [options] [-d]    URL
+       bmd [options] (-l|-L) [TAG]...
+       bmd [options] (-j|-t)
 
 Arguments:
     URL     The url to bookmark
@@ -39,6 +37,7 @@ Options:
     -d, --delete                 Delete an url from the database
     -l, --list-every             List the urls with every of TAG
     -L, --list-any               List the urls with any of TAG
+    -j, --json                   Writes database in JSON format to stdout
     -t, --tags                   List every tag present in the database
                                  with how many times it is used.
 
@@ -243,6 +242,10 @@ class Database
                     result ~= data[url];
         }
 
+        else if (flag == "json") {
+            writeln(redis.send("GET", redisID));
+        }
+
 
         if (pArgs["flag"].canFind("web")) {
             webOpen(environment.get("BROWSER", "firefox"),
@@ -264,21 +267,23 @@ string[][string] parseArgs(string[] args)
 
     bool optRemove;
     bool optDelete;
-    bool optListAny;
     bool optListEvery;
+    bool optListAny;
     bool optNoPathSub;
-    bool optWebOpen;
+    bool optJson;
     bool optListTags;
     bool optVerbose;
+    bool optWebOpen;
 
     try {
         getopt(args,
                std.getopt.config.caseSensitive,
                "r|remove",       &optRemove,
+               "d|delete",       &optDelete,
                "l|list-every",   &optListEvery,
                "L|list-any",     &optListAny,
-               "d|delete",       &optDelete,
                "n|no-path-subs", &optNoPathSub,
+               "j|json",         &optJson,
                "t|tags",         &optListTags,
                "v|verbose",      &optVerbose,
                "w|web",          &optWebOpen,
@@ -302,6 +307,11 @@ string[][string] parseArgs(string[] args)
     }
     else if (optListTags) {
         result["flag"] = ["listTags"];
+        result["urls"] = [];
+        result["tags"] = [];
+    }
+    else if (optJson) {
+        result["flag"] = ["json"];
         result["urls"] = [];
         result["tags"] = [];
     }
