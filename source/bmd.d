@@ -102,7 +102,6 @@ class Database
             raw = redis.send("GET", redisID).to!string;
         }
 
-        debug writeln("* getData: " ~ raw);
         foreach(string url, JSONValue tags ; raw.parseJSON.object) {
             foreach(JSONValue tag ; tags.array) {
                 data[url] ~= tag.str;
@@ -218,7 +217,6 @@ class Database
         }
 
         else if (flag == "listTags") {
-            writeln("Got Here");
             int[string] tagCount;
             foreach (urlTags ; data)
                 foreach (tag ; urlTags)
@@ -424,7 +422,7 @@ int main(string[] args)
         getopt(args,
                std.getopt.config.caseSensitive,
                "h|help",         {writeln(HELP); exit(0);},
-               "version",        {writeln("bmd version: "~VERSION); exit(0);},
+               "version",        {writeln("bmd version: ",VERSION); exit(0);},
                "I|redis-ID",     &ID,
                "R|redis-server", &optServer,
               );
